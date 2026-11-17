@@ -1,0 +1,61 @@
+
+name: Build Azrathiel
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract source ZIP
+        run: unzip -q "azrathiel-source-v1.2.zip"
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Run core tests
+        working-directory: azrathiel
+        run: bash tools/run_core_tests.sh
+
+      - name: Verify resource pack
+        working-directory: azrathiel
+        run: python tools/verify_pack.py
+
+      - name: Build plugin
+        working-directory: azrathiel
+        run: mvn -B -ntp clean package
+
+      - name: Package resource pack
+        working-directory: azrathiel
+        run: zip -qr ../Azrathiel-ResourcePack.zip resourcepack
+
+      - name: Upload plugin JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: Azrathiel-JAR
+          path: azrathiel/target/*.jar
+          if-no-files-found: error
+
+      - name: Upload resource pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: Azrathiel-ResourcePack
+          path: Azrathiel-ResourcePack.zip
+          if-no-files-found: error
+          
